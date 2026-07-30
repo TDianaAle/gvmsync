@@ -1,0 +1,103 @@
+# SPDX-FileCopyrightText: 2025-2026 Diana Tichy
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gvmsync"
+version = "1.0.0.dev1"
+description = "Automated permission synchronization for Greenbone Vulnerability Management (GVM) using project tags."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.10,<4"
+authors = [{ name = "Diana Tichy" }]
+keywords = [
+    "greenbone",
+    "gvm",
+    "openvas",
+    "permissions",
+    "multi-tenant",
+    "synchronization",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
+dependencies = ["python-gvm>=24.0.0", "lxml>=4.5.0"]
+
+[project.scripts]
+gvmsync = "gvmsync._cli:main"
+
+[project.urls]
+Homepage = "https://github.com/TDianaAle/gvmsync"
+Repository = "https://github.com/TDianaAle/gvmsync"
+Issues = "https://github.com/TDianaAle/gvmsync/issues"
+
+[dependency-groups]
+dev = [
+    "autohooks>=24.0.0",
+    "autohooks-plugin-ruff>=24.0.0",
+    "pontos>=24.0.0",
+    "pytest>=7.0.0",
+    "coverage>=7.0.0",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["gvmsync/", "tests/", "scripts/"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["gvmsync"]
+
+[tool.ruff]
+line-length = 80
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-select = [
+    "I",
+    "PLE",
+    "PLW",
+    "PTH",
+    "C4",
+    "A",
+    "N",
+    "RUF",
+    "UP",
+]
+ignore = ["BLE001", "S112"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = ["F821"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+packages = ["gvmsync"]
+ignore_missing_imports = true
+allow_redefinition = true
+explicit_package_bases = true
+
+[tool.pontos.version]
+version-module-file = "gvmsync/__version__.py"
+
+[tool.autohooks]
+mode = "uv"
+pre-commit = [
+    "autohooks.plugins.ruff.check",
+    "autohooks.plugins.ruff.format",
+]
