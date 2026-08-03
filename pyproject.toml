@@ -12,7 +12,7 @@ version = "1.0.0.dev1"
 description = "Automated permission synchronization for Greenbone Vulnerability Management (GVM) using project tags."
 readme = "README.md"
 license = "GPL-3.0-or-later"
-requires-python = ">=3.10,<4"
+requires-python = ">=3.11,<4"
 authors = [{ name = "Diana Tichy" }]
 keywords = [
     "greenbone",
@@ -29,7 +29,6 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -64,7 +63,7 @@ packages = ["gvmsync"]
 
 [tool.ruff]
 line-length = 80
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 extend-select = [
