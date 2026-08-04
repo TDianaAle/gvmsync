@@ -18,6 +18,24 @@ from gvmsync._resources import (
 )
 
 
+class TestNestedPermissions:
+    """Nested <permissions> blocks must not be counted."""
+
+    def test_effective_permissions_not_counted(
+        self, mock_gmp, nested_permissions_xml
+    ) -> None:
+        mock_gmp.get_permissions.return_value = nested_permissions_xml
+
+        records = _get_group_permissions(mock_gmp, "group-001")
+
+        # three <permission> elements are present in the XML,
+        # but only one is an actual result
+        assert len(records) == 1
+        assert records[0].permission_id == "perm-001"
+        assert records[0].resource_id == "task-001"
+        assert records[0].resource_type == "task"
+
+
 class TestPermissionExists:
     """Tests for _permission_exists()."""
 

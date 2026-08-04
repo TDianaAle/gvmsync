@@ -96,18 +96,18 @@ def _get_func(gmp: Gmp, res_type: str):
     }.get(res_type)
 
 
-def _select(response, res_type: str) -> list:
-    """Return the top-level resources of a GMP response.
+def _select(response, name: str) -> list:
+    """Return the top-level entities of a GMP response.
 
-    With ``details=True`` GMP nests elements that share the
-    parent's tag name: a ``<report>`` wraps an inner
-    ``<report>`` holding the results, and an OSP
+    GMP embeds elements sharing the name of an enclosing
+    element: every entity carries a ``<permissions>`` block of
+    inner ``<permission>`` elements, a detailed ``<report>``
+    wraps an inner ``<report>`` with the results, and an OSP
     ``<scanner>`` embeds a ``<scanner>`` describing the scan
-    engine.  A ``.//`` search would return the same resource
-    twice plus phantom entries with an empty id, so only
+    engine.  A ``.//`` search would return those too, so only
     direct children of the response root are considered.
     """
-    return [elem for elem in response.xpath(f"./{res_type}") if elem.get("id")]
+    return [elem for elem in response.xpath(f"./{name}") if elem.get("id")]
 
 
 # ------------------------------------------------------------------
@@ -306,7 +306,7 @@ def _permission_exists(
                 f'name="{perm_name}"'
             ),
         )
-        return len(response.xpath(".//permission")) > 0
+        return len(_select(response, "permission")) > 0
     except Exception:
         return False
 
@@ -387,14 +387,14 @@ def _cleanup(
         except Exception:
             continue
 
-        perms = response.xpath(".//permission")
+        perms = _select(response, "permission")
         if not perms:
             continue
 
         scanned += len(perms)
 
         for perm in perms:
-            res_elem = perm.find(".//resource")
+            res_elem = perm.find("resource")
             if res_elem is None:
                 continue
 

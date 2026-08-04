@@ -161,6 +161,38 @@ def permissions_xml() -> str:
 
 
 @pytest.fixture
+def nested_permissions_xml() -> str:
+    """Permissions XML as GMP actually returns it.
+
+    Every entity carries a ``<permissions>`` block listing the
+    effective permissions on it.  Those inner ``<permission>``
+    elements have no id and are not results, so a descendant
+    search would inflate the count.
+    """
+    return """
+    <get_permissions_response status="200">
+      <permission id="perm-001">
+        <name>get_tasks</name>
+        <permissions>
+          <permission><name>Everything</name></permission>
+        </permissions>
+        <subject id="group-001">
+          <name>TestProject</name>
+          <type>group</type>
+        </subject>
+        <resource id="task-001">
+          <name>Scan Client A</name>
+          <type>task</type>
+          <permissions>
+            <permission><name>get_tasks</name></permission>
+          </permissions>
+        </resource>
+      </permission>
+    </get_permissions_response>
+    """
+
+
+@pytest.fixture
 def empty_permissions_xml() -> str:
     """Empty permissions response."""
     return """

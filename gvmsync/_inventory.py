@@ -15,7 +15,7 @@ from ._resources import (
     extract_project_names,
     get_owner,
 )
-from ._xml import call_with_retry, parse_response, select_resources
+from ._xml import call_with_retry, parse_response, select_entities
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def list_all_resources(gmp: Any) -> None:
                 logger.warning("Could not parse %ss", res_type)
                 continue
 
-            elements = select_resources(rxml, res_type)
+            elements = select_entities(rxml, res_type)
             if not elements:
                 logger.info("No %ss found", res_type)
                 continue

@@ -16,7 +16,7 @@ from ._resources import (
     TaggedResource,
     extract_project_names,
 )
-from ._xml import call_with_retry, parse_response
+from ._xml import call_with_retry, parse_response, select_entities
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def _permission_exists(
         pxml = parse_response(response)
         if pxml is None:
             return False
-        return len(pxml.xpath(".//permission")) > 0
+        return len(select_entities(pxml, "permission")) > 0
     except Exception:
         return False
 
@@ -222,8 +222,8 @@ def _get_group_permissions(
             return []
 
         records: list[PermissionRecord] = []
-        for perm in pxml.xpath(".//permission"):
-            resource_elem = perm.find(".//resource")
+        for perm in select_entities(pxml, "permission"):
+            resource_elem = perm.find("resource")
             if resource_elem is None:
                 continue
 

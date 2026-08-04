@@ -14,7 +14,7 @@ from gvmsync._resources import (
     extract_project_names,
     get_owner,
 )
-from gvmsync._xml import select_resources
+from gvmsync._xml import select_entities
 
 
 class TestExtractProjectNames:
@@ -79,14 +79,14 @@ class TestSelectResources:
     def test_nested_report_counted_once(self, nested_report_xml: str) -> None:
         root = etree.fromstring(nested_report_xml.encode())
         assert len(root.xpath(".//report")) == 2
-        assert len(select_resources(root, "report")) == 1
+        assert len(select_entities(root, "report")) == 1
 
     def test_nested_scanner_engine_ignored(
         self, nested_scanner_xml: str
     ) -> None:
         root = etree.fromstring(nested_scanner_xml.encode())
         assert len(root.xpath(".//scanner")) == 2
-        selected = select_resources(root, "scanner")
+        selected = select_entities(root, "scanner")
         assert len(selected) == 1
         assert selected[0].get("id") == "scanner-001"
 

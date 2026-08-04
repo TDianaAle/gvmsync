@@ -13,7 +13,7 @@ from typing import Any
 from lxml.etree import _Element as Element
 
 from ._errors import ResourceError
-from ._xml import call_with_retry, parse_response, select_resources
+from ._xml import call_with_retry, parse_response, select_entities
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +164,7 @@ def _get_resources_by_type(
         return {}
 
     projects_resources: dict[str, list[TaggedResource]] = {}
-    all_elems = select_resources(resources_xml, resource_type)
+    all_elems = select_entities(resources_xml, resource_type)
     tagged_count = 0
 
     for elem in all_elems:

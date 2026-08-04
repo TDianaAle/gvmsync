@@ -54,30 +54,37 @@ def parse_response(
         raise XmlParseError(str(exc)) from exc
 
 
-def select_resources(
+def select_entities(
     root: Element,
-    resource_type: str,
+    entity_name: str,
 ) -> list[Element]:
-    """Return the top-level resources of a GMP response.
+    """Return the top-level entities of a GMP response.
 
-    When ``details=True`` is requested, GMP nests elements
-    that share the parent's tag name: a ``<report>`` wraps an
-    inner ``<report>`` holding the results, and an OSP
-    ``<scanner>`` embeds a ``<scanner>`` describing the scan
-    engine.  A descendant search (``.//``) therefore yields
-    the same resource twice and adds phantom entries with an
-    empty ``id``.  Only direct children of the response root
-    are real resources.
+    GMP embeds elements that share the name of an enclosing
+    element, so a descendant search (``.//``) returns far more
+    than the actual result set:
+
+    * every entity carries a ``<permissions>`` block listing
+      the effective permissions on it, each an inner
+      ``<permission>``;
+    * with ``details=True`` a ``<report>`` wraps an inner
+      ``<report>`` holding the results, and an OSP
+      ``<scanner>`` embeds a ``<scanner>`` describing the
+      scan engine.
+
+    Those inner elements are metadata, not results: they
+    duplicate ids or carry none at all.  Only direct children
+    of the response root are real entities.
 
     Args:
         root: The parsed ``<get_*_response>`` element.
-        resource_type: One of ``scanner``, ``task``,
-            ``report``.
+        entity_name: The element name to select, e.g.
+            ``scanner``, ``task``, ``report``, ``permission``.
 
     Returns:
-        The resource elements, skipping any without an id.
+        The entity elements, skipping any without an id.
     """
-    return [elem for elem in root.xpath(f"./{resource_type}") if elem.get("id")]
+    return [elem for elem in root.xpath(f"./{entity_name}") if elem.get("id")]
 
 
 def call_with_retry(
