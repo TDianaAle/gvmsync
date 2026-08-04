@@ -29,6 +29,7 @@ from gvm.protocols.gmp import Gmp
 
 TARGET_NAME = "gvmsync-test-localhost"
 TARGET_HOSTS = ["127.0.0.1"]
+TARGET_PORT_RANGE = "1-1024"
 
 TASKS: dict[str, str | None] = {
     "gvmsync-task-alpha": "ClientA",
@@ -70,6 +71,7 @@ def _ensure_target(gmp: Gmp) -> str:
     response = gmp.create_target(
         name=TARGET_NAME,
         hosts=TARGET_HOSTS,
+        port_range=TARGET_PORT_RANGE,
         comment="Created by gvmsync seed script",
     )
     print(f"  created target '{TARGET_NAME}'")
