@@ -281,7 +281,9 @@ def _resource_still_tagged(
         if rxml is None:
             return (False, "deleted")
 
-        xpath = f".//{resource_type}[@id='{resource_id}']"
+        # direct children only: GMP nests same-named elements
+        # inside a detailed resource (see select_resources)
+        xpath = f"./{resource_type}[@id='{resource_id}']"
         elem = rxml.find(xpath)
         if elem is None:
             return (False, "deleted")

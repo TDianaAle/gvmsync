@@ -14,6 +14,7 @@ from gvmsync._resources import (
     extract_project_names,
     get_owner,
 )
+from gvmsync._xml import select_resources
 
 
 class TestExtractProjectNames:
@@ -72,8 +73,44 @@ class TestGetOwner:
         assert get_owner(task_element_no_owner) == "Unknown"
 
 
+class TestSelectResources:
+    """Tests for the nested-element handling of GMP responses."""
+
+    def test_nested_report_counted_once(self, nested_report_xml: str) -> None:
+        root = etree.fromstring(nested_report_xml.encode())
+        assert len(root.xpath(".//report")) == 2
+        assert len(select_resources(root, "report")) == 1
+
+    def test_nested_scanner_engine_ignored(
+        self, nested_scanner_xml: str
+    ) -> None:
+        root = etree.fromstring(nested_scanner_xml.encode())
+        assert len(root.xpath(".//scanner")) == 2
+        selected = select_resources(root, "scanner")
+        assert len(selected) == 1
+        assert selected[0].get("id") == "scanner-001"
+
+
 class TestCollectTaggedResources:
     """Tests for collect_tagged_resources()."""
+
+    def test_nested_report_yields_one_resource(
+        self,
+        mock_gmp,
+        nested_report_xml,
+        nested_scanner_xml,
+    ) -> None:
+        mock_gmp.get_tasks.return_value = "<get_tasks_response/>"
+        mock_gmp.get_scanners.return_value = nested_scanner_xml
+        mock_gmp.get_reports.return_value = nested_report_xml
+
+        result = collect_tagged_resources(mock_gmp)
+
+        project = result["TestProject"]
+        assert len(project.reports) == 1
+        assert project.reports[0].resource_id == "report-001"
+        assert len(project.scanners) == 1
+        assert project.scanners[0].resource_id == "scanner-001"
 
     def test_collects_tagged(
         self,

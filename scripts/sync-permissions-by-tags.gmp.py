@@ -96,6 +96,20 @@ def _get_func(gmp: Gmp, res_type: str):
     }.get(res_type)
 
 
+def _select(response, res_type: str) -> list:
+    """Return the top-level resources of a GMP response.
+
+    With ``details=True`` GMP nests elements that share the
+    parent's tag name: a ``<report>`` wraps an inner
+    ``<report>`` holding the results, and an OSP
+    ``<scanner>`` embeds a ``<scanner>`` describing the scan
+    engine.  A ``.//`` search would return the same resource
+    twice plus phantom entries with an empty id, so only
+    direct children of the response root are considered.
+    """
+    return [elem for elem in response.xpath(f"./{res_type}") if elem.get("id")]
+
+
 # ------------------------------------------------------------------
 # inventory (--all)
 # ------------------------------------------------------------------
@@ -116,7 +130,7 @@ def _list_all_resources(gmp: Gmp) -> None:
 
         try:
             response = func(details=True)
-            elements = response.xpath(f".//{res_type}")
+            elements = _select(response, res_type)
 
             if not elements:
                 print(f"  No {res_type}s found")
@@ -188,7 +202,7 @@ def _collect_resources(
 
         try:
             response = func(details=True)
-            elements = response.xpath(f".//{res_type}")
+            elements = _select(response, res_type)
             count = 0
 
             for elem in elements:
@@ -401,7 +415,7 @@ def _cleanup(
                     filter_string=f"uuid={res_id}",
                     details=True,
                 )
-                xpath = f".//{res_type}[@id='{res_id}']"
+                xpath = f"./{res_type}[@id='{res_id}']"
                 elem = resp.find(xpath)
                 if elem is not None:
                     prjs = _extract_project_names(elem)

@@ -68,6 +68,61 @@ def report_no_tag_xml() -> str:
 
 
 @pytest.fixture
+def nested_report_xml() -> str:
+    """Report XML as GMP returns it with ``details=True``.
+
+    A detailed ``<report>`` wraps an inner ``<report>`` that
+    carries the same id and holds the results.  A descendant
+    search would count this single report twice.
+    """
+    return """
+    <get_reports_response status="200">
+      <report id="report-001">
+        <name>2026-01-01T00:00:00Z</name>
+        <owner><name>admin</name></owner>
+        <tag>
+          <name>project:TestProject</name>
+        </tag>
+        <report id="report-001">
+          <results>
+            <result id="result-001">
+              <name>Some finding</name>
+            </result>
+          </results>
+        </report>
+      </report>
+    </get_reports_response>
+    """
+
+
+@pytest.fixture
+def nested_scanner_xml() -> str:
+    """Scanner XML as GMP returns it with ``details=True``.
+
+    An OSP scanner embeds a ``<scanner>`` element describing
+    the scan engine.  That inner element has no id and is not
+    a resource.
+    """
+    return """
+    <get_scanners_response status="200">
+      <scanner id="scanner-001">
+        <name>OpenVAS Default</name>
+        <owner><name>admin</name></owner>
+        <tag>
+          <name>project:TestProject</name>
+        </tag>
+        <info>
+          <scanner>
+            <name>OpenVAS</name>
+            <version>22.4</version>
+          </scanner>
+        </info>
+      </scanner>
+    </get_scanners_response>
+    """
+
+
+@pytest.fixture
 def groups_xml() -> str:
     """Groups listing XML."""
     return """
