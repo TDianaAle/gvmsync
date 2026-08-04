@@ -4,16 +4,23 @@
 
 """Seed a GVM instance with test data for gvmsync.
 
-Development helper.  Creates a localhost target, three
-tasks and a set of ``project:*`` tags so that gvmsync has
-something to synchronize:
+Development helper.  Creates tasks, an imported report and a
+set of ``project:*`` tags so that gvmsync has something to
+synchronize:
 
-    ClientA -> gvmsync-task-alpha + the default scanner
+    ClientA -> gvmsync-task-alpha + report + default scanner
     ClientB -> gvmsync-task-beta
     (none)  -> gvmsync-task-untagged  (control: ignored)
 
 The untagged task is a control: a correct gvmsync run must
 never grant permissions on it.
+
+When the instance has no scan configs -- which is the case on
+a feedless test deployment -- the tasks are created as
+*container tasks*.  Those need neither a scan config nor a
+scanner, and they accept imported reports, so the full
+scanner/task/report permission matrix can still be exercised
+without running an actual scan.
 
 Usage::
 
@@ -36,6 +43,24 @@ TASKS: dict[str, str | None] = {
     "gvmsync-task-beta": "ClientB",
     "gvmsync-task-untagged": None,
 }
+
+# task that receives the imported report
+REPORT_TASK = "gvmsync-task-alpha"
+
+REPORT_XML = """<report>
+  <scan_start>2026-01-01T00:00:00Z</scan_start>
+  <scan_end>2026-01-01T00:05:00Z</scan_end>
+  <results>
+    <result>
+      <name>gvmsync seed result</name>
+      <host>127.0.0.1</host>
+      <port>general/tcp</port>
+      <threat>Log</threat>
+      <severity>0.0</severity>
+      <description>Synthetic result from the gvmsync dev seed.</description>
+    </result>
+  </results>
+</report>"""
 
 
 def _entity_type(name: str):
@@ -79,7 +104,7 @@ def _ensure_target(gmp: Gmp) -> str:
 
 
 def _get_scan_config(gmp: Gmp) -> str | None:
-    """Return the 'Full and fast' scan config id."""
+    """Return a usable scan config id, or None if there is none."""
     try:
         response = gmp.get_scan_configs()
     except AttributeError:
@@ -103,25 +128,58 @@ def _get_scanner(gmp: Gmp) -> str | None:
 def _ensure_task(
     gmp: Gmp,
     name: str,
-    config_id: str,
+    config_id: str | None,
     target_id: str,
-    scanner_id: str,
+    scanner_id: str | None,
 ) -> str:
-    """Create a task if it does not exist."""
+    """Create a task if it does not exist.
+
+    Falls back to a container task when the instance has no
+    scan config to attach.
+    """
     existing = _find_id(gmp.get_tasks(), ".//task", name)
     if existing:
         print(f"  task '{name}' already exists")
         return existing
 
-    response = gmp.create_task(
-        name=name,
-        config_id=config_id,
-        target_id=target_id,
-        scanner_id=scanner_id,
-        comment="Created by gvmsync seed script",
-    )
-    print(f"  created task '{name}'")
+    if config_id and scanner_id:
+        response = gmp.create_task(
+            name=name,
+            config_id=config_id,
+            target_id=target_id,
+            scanner_id=scanner_id,
+            comment="Created by gvmsync seed script",
+        )
+        print(f"  created task '{name}'")
+    else:
+        response = gmp.create_container_task(
+            name=name,
+            comment="Container task created by gvmsync seed script",
+        )
+        print(f"  created container task '{name}'")
+
     return response.get("id", "")
+
+
+def _ensure_report(gmp: Gmp, task_id: str) -> str | None:
+    """Import a synthetic report into a container task."""
+    try:
+        existing = gmp.get_reports(filter_string=f"task_id={task_id}")
+        report_id = _first_id(existing, ".//report")
+        if report_id:
+            print("  report already present")
+            return report_id
+    except Exception as exc:
+        print(f"  WARNING: could not list reports: {exc}")
+
+    try:
+        response = gmp.import_report(REPORT_XML, task_id=task_id)
+        report_id = response.get("id", "")
+        print("  imported synthetic report")
+        return report_id
+    except Exception as exc:
+        print(f"  WARNING: report import failed: {exc}")
+        return None
 
 
 def _ensure_tag(
@@ -132,7 +190,13 @@ def _ensure_tag(
 ) -> None:
     """Attach a project:<name> tag to the given resources."""
     tag_name = f"project:{project}"
-    existing = _find_id(gmp.get_tags(), ".//tag", tag_name)
+    existing = None
+    for tag in gmp.get_tags().xpath(".//tag"):
+        if tag.findtext("name", "") != tag_name:
+            continue
+        if tag.findtext("resource_type", "") == resource_type:
+            existing = tag.get("id", "")
+            break
 
     if existing:
         gmp.modify_tag(
@@ -156,15 +220,18 @@ def main(gmp: Gmp, args: Namespace) -> None:
     """Seed the instance with gvmsync test data."""
     print("gvmsync seed - creating test data")
 
-    print("\n--- Target ---")
-    target_id = _ensure_target(gmp)
-
     config_id = _get_scan_config(gmp)
     scanner_id = _get_scanner(gmp)
 
-    if not config_id or not scanner_id:
-        print("  ERROR: no scan config or scanner available")
+    if not scanner_id:
+        print("  ERROR: no scanner available")
         return
+
+    print("\n--- Target ---")
+    target_id = _ensure_target(gmp)
+
+    if not config_id:
+        print("  no scan config found: using container tasks")
 
     print("\n--- Tasks ---")
     task_ids: dict[str, str] = {}
@@ -172,6 +239,13 @@ def main(gmp: Gmp, args: Namespace) -> None:
         task_ids[task_name] = _ensure_task(
             gmp, task_name, config_id, target_id, scanner_id
         )
+
+    print("\n--- Report ---")
+    report_id = None
+    if not config_id:
+        report_id = _ensure_report(gmp, task_ids[REPORT_TASK])
+    else:
+        print("  skipped (real scan configs available)")
 
     print("\n--- Tags ---")
     by_project: dict[str, list[str]] = {}
@@ -182,9 +256,11 @@ def main(gmp: Gmp, args: Namespace) -> None:
     for project, ids in by_project.items():
         _ensure_tag(gmp, project, "task", ids)
 
-    # tag the scanner for ClientA so that scanner permissions
-    # are exercised as well
+    # tag the scanner and the report for ClientA so that the
+    # full permission matrix is exercised
     _ensure_tag(gmp, "ClientA", "scanner", [scanner_id])
+    if report_id:
+        _ensure_tag(gmp, "ClientA", "report", [report_id])
 
     print("\n--- Done ---")
     print(f"Projects seeded: {', '.join(by_project)}")
