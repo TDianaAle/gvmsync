@@ -41,6 +41,8 @@ from gvm.protocols.gmp import Gmp
 
 RESOURCE_TYPES = ("scanner", "task", "report")
 
+SUPPORTED_FLAGS = frozenset({"--dry-run", "--cleanup", "--all"})
+
 PERMISSION_CONFIG: dict[str, list[str]] = {
     "scanner": ["get_scanners"],
     "task": ["get_tasks", "start_task", "stop_task"],
@@ -432,6 +434,22 @@ def _cleanup(
 # ------------------------------------------------------------------
 
 
+def _collect_script_args(args: Namespace) -> list[str]:
+    """Gather the arguments meant for this script.
+
+    ``gvm-script`` declares its ``scriptargs`` with
+    ``nargs="*"``, which only captures positional values.
+    Anything starting with ``-`` is left over by
+    ``parse_known_args()`` and exposed as ``script_args``
+    instead.  Reading only ``args.script`` would therefore
+    silently drop every flag.  Both sources are merged so
+    that older gvm-tools releases keep working.
+    """
+    collected = list(getattr(args, "script_args", None) or [])
+    collected += list(getattr(args, "script", None) or [])[1:]
+    return collected
+
+
 def _parse_script_args(
     args: Namespace,
 ) -> tuple[bool, bool, bool]:
@@ -439,8 +457,20 @@ def _parse_script_args(
 
     Returns:
         Tuple of (dry_run, cleanup, show_all).
+
+    Raises:
+        SystemExit: If an unsupported argument is given.
+            Failing loudly matters here: a silently ignored
+            ``--dry-run`` would run a real synchronization.
     """
-    script_args = args.script[1:]
+    script_args = _collect_script_args(args)
+
+    unknown = [a for a in script_args if a not in SUPPORTED_FLAGS]
+    if unknown:
+        print(f"ERROR: unsupported argument(s): {' '.join(unknown)}")
+        print(f"Supported: {' '.join(sorted(SUPPORTED_FLAGS))}")
+        raise SystemExit(2)
+
     dry_run = "--dry-run" in script_args
     cleanup = "--cleanup" in script_args
     show_all = "--all" in script_args
