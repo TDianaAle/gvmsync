@@ -23,6 +23,24 @@ isolation without manual permission management.
 | Task          | `get_tasks`, `start_task`, `stop_task` |
 | Report        | `get_reports`                |
 
+Resources without a `project:*` tag are never touched.
+
+## Tested Against
+
+Both the standalone CLI and the `gvm-script` variant have been verified
+end to end against a live instance:
+
+| Component | Version |
+|-----------|---------|
+| Greenbone Community Edition | 22.4 (container deployment) |
+| gvmd | 26.36.1 (DB revision 281) |
+| python-gvm | 24.x |
+
+Verified behaviour: resource discovery, group creation, least-privilege
+permission granting, untagged resources left untouched, idempotent
+re-runs, dry-run making no writes, and garbage collection revoking only
+the permissions whose tag was removed.
+
 ## Installation
 
 ### From PyPI (when published)
