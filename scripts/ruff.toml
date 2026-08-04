@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2025-2026 Diana Tichy
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Configuration for the gvm-script entry points, kept separate from
+# the package so that sync-permissions-by-tags.gmp.py stays
+# byte-identical to the copy submitted to greenbone/gvm-tools.
+#
+# Upstream sets only `builtins` here, which leaves ruff's default
+# line length of 88 in force; matching that is what keeps the two
+# copies formatted the same way. The lint ignores below are ours:
+# ruff 0.16 widened its default rule set, and these scripts talk to
+# a remote service where any GMP call can fail in ways that must not
+# abort the run.
+builtins = ["gmp", "args"]
+
+[lint]
+ignore = [
+    # a failed GMP call is reported and skipped, never fatal
+    "BLE001",
+    "S112",
+    # these scripts must also run on Python 3.10, where the
+    # datetime.UTC alias does not exist yet
+    "UP017",
+]

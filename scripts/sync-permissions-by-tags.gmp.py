@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import time
 from argparse import Namespace
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from gvm.protocols.gmp import Gmp
 
@@ -151,11 +151,7 @@ def _list_all_resources(gmp: Gmp) -> None:
                     tagged += 1
                     project_tagged += 1
                     tag_str = ", ".join(all_tags)
-                    print(
-                        f"  [SYNC] {short}  "
-                        f"id={rid}  owner={owner}  "
-                        f"tags={tag_str}"
-                    )
+                    print(f"  [SYNC] {short}  id={rid}  owner={owner}  tags={tag_str}")
                 elif all_tags:
                     tagged += 1
                     tag_str = ", ".join(all_tags)
@@ -166,9 +162,7 @@ def _list_all_resources(gmp: Gmp) -> None:
                         f"(no project:* tag)"
                     )
                 else:
-                    print(
-                        f"  [----] {short}  id={rid}  owner={owner}  (no tags)"
-                    )
+                    print(f"  [----] {short}  id={rid}  owner={owner}  (no tags)")
 
         except Exception as exc:
             print(f"  ERROR: failed to retrieve {res_type}s: {exc}")
@@ -272,7 +266,7 @@ def _ensure_group(
         return f"dry-run-{name}"
 
     try:
-        now = datetime.now(tz=UTC).isoformat()
+        now = datetime.now(tz=timezone.utc).isoformat()
         response = gmp.create_group(
             name=name,
             comment=f"Auto-created by gvmsync - {now}",
@@ -337,14 +331,12 @@ def _grant_permissions(
                     continue
 
                 if dry_run:
-                    print(
-                        f"    [dry-run] Would grant '{perm}' on '{res['name']}'"
-                    )
+                    print(f"    [dry-run] Would grant '{perm}' on '{res['name']}'")
                     total += 1
                     continue
 
                 try:
-                    now = datetime.now(tz=UTC).isoformat()
+                    now = datetime.now(tz=timezone.utc).isoformat()
                     gmp.create_permission(
                         name=perm,
                         subject_id=group_id,
@@ -427,10 +419,7 @@ def _cleanup(
                 continue
 
             if dry_run:
-                print(
-                    f"    [dry-run] Would remove "
-                    f"'{perm_name}' from '{res_name}'"
-                )
+                print(f"    [dry-run] Would remove '{perm_name}' from '{res_name}'")
                 removed += 1
             else:
                 try:
@@ -526,9 +515,7 @@ def main(gmp: Gmp, args: Namespace) -> None:
             gid = _ensure_group(gmp, pname, groups, dry_run=dry_run)
             if not gid:
                 continue
-            total_perms += _grant_permissions(
-                gmp, gid, resources, dry_run=dry_run
-            )
+            total_perms += _grant_permissions(gmp, gid, resources, dry_run=dry_run)
 
     if cleanup:
         _cleanup(gmp, groups, dry_run=dry_run)
@@ -536,9 +523,7 @@ def main(gmp: Gmp, args: Namespace) -> None:
     elapsed = time.time() - start
     print("\n--- Summary ---")
     print(
-        f"Projects: {len(projects)} | "
-        f"Permissions: {total_perms} | "
-        f"Time: {elapsed:.2f}s"
+        f"Projects: {len(projects)} | Permissions: {total_perms} | Time: {elapsed:.2f}s"
     )
     print("Done.")
 

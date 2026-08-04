@@ -79,8 +79,8 @@ extend-select = [
 ]
 ignore = ["BLE001", "S112"]
 
-[tool.ruff.lint.per-file-ignores]
-"scripts/**/*.py" = ["F821"]
+# scripts/ are governed by scripts/ruff.toml, which mirrors the
+# upstream gvm-tools configuration; no per-file ignores needed here.
 
 [tool.ruff.format]
 docstring-code-format = true
